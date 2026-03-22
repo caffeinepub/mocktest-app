@@ -1,0 +1,83 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    /* Primary navy #2F4F68 */
+    --primary: 0.38 0.065 225;
+    --primary-foreground: 0.98 0 0;
+    /* Page bg #F3F6F8 */
+    --background: 0.97 0.01 215;
+    --foreground: 0.16 0.022 225;
+    /* Cards #FFFFFF */
+    --card: 1 0 0;
+    --card-foreground: 0.16 0.022 225;
+    --popover: 1 0 0;
+    --popover-foreground: 0.16 0.022 225;
+    /* Secondary text #5B6773 */
+    --secondary: 0.94 0.018 215;
+    --secondary-foreground: 0.38 0.065 225;
+    --muted: 0.94 0.018 215;
+    --muted-foreground: 0.47 0.018 225;
+    /* Teal accent #BFD8DB */
+    --accent: 0.86 0.04 195;
+    --accent-foreground: 0.38 0.065 225;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.98 0 0;
+    /* Borders #D9E2E8 */
+    --border: 0.9 0.018 215;
+    --input: 0.9 0.018 215;
+    --ring: 0.38 0.065 225;
+    /* Hero bg #DDEFF1 */
+    --hero-bg: 0.94 0.025 195;
+    /* Success #2E9B6D */
+    --success: 0.6 0.13 162;
+    --success-foreground: 0.98 0 0;
+    --chart-1: 0.38 0.065 225;
+    --chart-2: 0.6 0.13 162;
+    --chart-3: 0.86 0.04 195;
+    --chart-4: 0.646 0.222 41.116;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 1 0 0;
+    --sidebar-foreground: 0.16 0.022 225;
+    --sidebar-primary: 0.38 0.065 225;
+    --sidebar-primary-foreground: 0.98 0 0;
+    --sidebar-accent: 0.94 0.018 215;
+    --sidebar-accent-foreground: 0.38 0.065 225;
+    --sidebar-border: 0.9 0.018 215;
+    --sidebar-ring: 0.38 0.065 225;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+}
+
+@layer utilities {
+  .hero-wash {
+    background: oklch(var(--hero-bg));
+  }
+  .text-success {
+    color: oklch(var(--success));
+  }
+  .bg-success {
+    background-color: oklch(var(--success));
+  }
+  .bg-navy {
+    background-color: oklch(var(--primary));
+  }
+  .text-navy {
+    color: oklch(var(--primary));
+  }
+  .bg-teal-light {
+    background-color: oklch(var(--accent));
+  }
+}
