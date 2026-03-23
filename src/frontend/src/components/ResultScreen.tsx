@@ -9,6 +9,7 @@ interface ResultScreenProps {
   test: Test | null;
   questions: Question[];
   userAnswers: bigint[];
+  userName?: string;
   onRetry: () => void;
   onHome: () => void;
 }
@@ -20,12 +21,13 @@ export default function ResultScreen({
   test,
   questions,
   userAnswers,
+  userName,
   onRetry,
   onHome,
 }: ResultScreenProps) {
   const [showReview, setShowReview] = useState(false);
 
-  const score = Number(result.score);
+  const _score = Number(result.score);
   const total = Number(result.totalQuestions);
   const correct = Number(result.correctAnswers);
   const incorrect = total - correct;
@@ -46,6 +48,20 @@ export default function ResultScreen({
           <Trophy className="w-5 h-5" />
           <span className="font-medium">{test?.title ?? "Test"} — Results</span>
         </div>
+
+        {/* User name & score banner */}
+        {userName && (
+          <div className="bg-primary/10 border border-primary/20 rounded-xl px-6 py-4 space-y-1">
+            <p className="text-base text-muted-foreground">Participant</p>
+            <p className="text-2xl font-bold text-primary">{userName}</p>
+            <p className="text-sm font-semibold text-foreground">
+              Total Score:{" "}
+              <span className="text-primary">
+                {correct}/{total}
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Circular progress */}
         <div className="flex justify-center">
@@ -106,7 +122,7 @@ export default function ResultScreen({
           {[
             {
               label: "Total Score",
-              value: `${score}/${total}`,
+              value: `${correct}/${total}`,
               color: "text-foreground",
             },
             { label: "Correct", value: correct, color: "text-success" },

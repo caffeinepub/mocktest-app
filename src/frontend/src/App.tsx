@@ -11,6 +11,7 @@ import AdminPanel from "./components/AdminPanel";
 import AuthScreen from "./components/AuthScreen";
 import Footer from "./components/Footer";
 import HomeScreen from "./components/HomeScreen";
+import NameEntryScreen from "./components/NameEntryScreen";
 import NavBar from "./components/NavBar";
 import ResultScreen from "./components/ResultScreen";
 import TestScreen from "./components/TestScreen";
@@ -28,7 +29,7 @@ import {
 
 const SEED_KEY = "prepmaster_seeded_v2";
 
-type Screen = "home" | "test" | "result" | "admin";
+type Screen = "home" | "nameEntry" | "test" | "result" | "admin";
 
 function AppInner() {
   const { login, clear, loginStatus, identity, isInitializing } =
@@ -43,10 +44,10 @@ function AppInner() {
   const [activeTestId, setActiveTestId] = useState<bigint | null>(null);
   const [pendingResult, setPendingResult] = useState<TestResult | null>(null);
   const [lastAnswers, setLastAnswers] = useState<bigint[]>([]);
+  const [userName, setUserName] = useState("");
   const registeredRef = useRef(false);
 
   // Register user in backend (first caller becomes admin)
-  // After register, invalidate isCallerAdmin so the tab appears immediately
   useEffect(() => {
     if (!actor || !isAuthenticated || registeredRef.current) return;
     registeredRef.current = true;
@@ -57,7 +58,6 @@ function AppInner() {
         qc.invalidateQueries({ queryKey: ["callerUserRole"] });
       })
       .catch(() => {
-        // already registered – still refresh admin status
         qc.invalidateQueries({ queryKey: ["isCallerAdmin"] });
       });
   }, [actor, isAuthenticated, qc]);
@@ -98,6 +98,11 @@ function AppInner() {
 
   const handleStartTest = useCallback((testId: bigint) => {
     setActiveTestId(testId);
+    setScreen("nameEntry");
+  }, []);
+
+  const handleNameSubmit = useCallback((name: string) => {
+    setUserName(name);
     setScreen("test");
   }, []);
 
@@ -125,6 +130,7 @@ function AppInner() {
     setScreen("home");
     setActiveTestId(null);
     setPendingResult(null);
+    setUserName("");
   }, [clear]);
 
   const handleNavigate = useCallback(
@@ -172,6 +178,14 @@ function AppInner() {
           />
         )}
 
+        {screen === "nameEntry" && (
+          <NameEntryScreen
+            testTitle={activeTest?.title ?? ""}
+            onStart={handleNameSubmit}
+            onBack={() => setScreen("home")}
+          />
+        )}
+
         {screen === "test" && (
           <TestScreen
             test={activeTest ?? null}
@@ -188,6 +202,7 @@ function AppInner() {
             test={activeTest ?? null}
             questions={testQuestions}
             userAnswers={lastAnswers}
+            userName={userName}
             onRetry={() => {
               if (activeTestId) handleStartTest(activeTestId);
             }}

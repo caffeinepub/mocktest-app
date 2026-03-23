@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { BookOpen, LogOut, Search, Shield } from "lucide-react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
-type Screen = "home" | "test" | "result" | "admin";
+type Screen = "home" | "nameEntry" | "test" | "result" | "admin";
 
 interface NavBarProps {
   currentScreen: Screen;
