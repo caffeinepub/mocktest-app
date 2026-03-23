@@ -1,3 +1,4 @@
+import type { Principal } from "@icp-sdk/core/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Category,
@@ -180,9 +181,10 @@ export function useSubmitTestAttempt() {
     mutationFn: async ({
       testId,
       answers,
-    }: { testId: bigint; answers: bigint[] }) => {
+      userName,
+    }: { testId: bigint; answers: bigint[]; userName: string }) => {
       if (!actor) throw new Error("Actor not available");
-      await actor.submitTestAttempt(testId, answers);
+      await actor.submitTestAttempt(testId, answers, userName);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["callerTestAttempts"] });
@@ -412,5 +414,32 @@ export function useClaimAdminWithSecret() {
       qc.invalidateQueries({ queryKey: ["isCallerAdmin"] });
       qc.invalidateQueries({ queryKey: ["callerUserRole"] });
     },
+  });
+}
+
+export function useDeleteUserScoreRecord() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      timestamp,
+    }: { userId: Principal; timestamp: bigint }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteUserScoreRecord(userId, timestamp);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allTestAttempts"] }),
+  });
+}
+
+export function useResetAllScores() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.resetAllScores();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allTestAttempts"] }),
   });
 }

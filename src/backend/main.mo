@@ -11,7 +11,10 @@ import Principal "mo:core/Principal";
 import Array "mo:core/Array";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+// Use with-clause to run migration on upgrade
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -46,6 +49,7 @@ actor {
 
   public type TestAttempt = {
     userId : Principal;
+    userName : Text;
     testId : Nat;
     answers : [Nat];
     score : Nat;
@@ -79,16 +83,6 @@ actor {
   var nextQuestionId = 1;
   var nextTestId = 1;
 
-  // Helper: safely check admin without trapping
-  func isAdminCaller(caller : Principal) : Bool {
-    if (caller.isAnonymous()) { return false };
-    switch (accessControlState.userRoles.get(caller)) {
-      case (?#admin) { true };
-      case (_) { false };
-    };
-  };
-
-  // Register user as #user (or keep existing role)
   public shared ({ caller }) func register() : async () {
     if (caller.isAnonymous()) { return };
     switch (accessControlState.userRoles.get(caller)) {
@@ -99,30 +93,42 @@ actor {
     };
   };
 
-  // Claim admin with secret code
   public shared ({ caller }) func claimAdminWithSecret(secret : Text) : async Bool {
+    if (caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Anonymous principals cannot claim admin role");
+    };
     if (secret != ADMIN_SECRET) { return false };
     accessControlState.userRoles.add(caller, #admin);
     accessControlState.adminAssigned := true;
     return true;
   };
 
-  // User Profiles
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user)) or caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Only users can view profiles");
+    };
     userProfiles.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
     userProfiles.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user)) or caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
     userProfiles.add(caller, profile);
   };
 
   // Categories
   public shared ({ caller }) func createCategory(name : Text, description : Text) : async Nat {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     let id = nextCategoryId;
     categoryStore.add(id, { id; name; description });
     nextCategoryId += 1;
@@ -141,7 +147,9 @@ actor {
   };
 
   public shared ({ caller }) func updateCategory(categoryId : Nat, name : Text, description : Text) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     switch (categoryStore.get(categoryId)) {
       case (null) { Runtime.trap("Category not found") };
       case (?_) { categoryStore.add(categoryId, { id = categoryId; name; description }) };
@@ -149,13 +157,17 @@ actor {
   };
 
   public shared ({ caller }) func deleteCategory(categoryId : Nat) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     categoryStore.remove(categoryId);
   };
 
   // Questions
   public shared ({ caller }) func createQuestion(categoryId : Nat, questionText : Text, options : [Text], correctOptionIndex : Nat, difficulty : Text) : async Nat {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     let id = nextQuestionId;
     questionStore.add(id, { id; categoryId; questionText; options; correctOptionIndex; difficulty });
     nextQuestionId += 1;
@@ -178,7 +190,9 @@ actor {
   };
 
   public shared ({ caller }) func updateQuestion(questionId : Nat, categoryId : Nat, questionText : Text, options : [Text], correctOptionIndex : Nat, difficulty : Text) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     switch (questionStore.get(questionId)) {
       case (null) { Runtime.trap("Question not found") };
       case (?_) { questionStore.add(questionId, { id = questionId; categoryId; questionText; options; correctOptionIndex; difficulty }) };
@@ -186,13 +200,17 @@ actor {
   };
 
   public shared ({ caller }) func deleteQuestion(questionId : Nat) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     questionStore.remove(questionId);
   };
 
   // Tests
   public shared ({ caller }) func createTest(title : Text, categoryId : Nat, questionIds : [Nat], timeLimitMinutes : Nat) : async Nat {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     let id = nextTestId;
     testStore.add(id, { id; title; categoryId; questionIds; timeLimitMinutes; createdBy = caller });
     nextTestId += 1;
@@ -215,7 +233,9 @@ actor {
   };
 
   public shared ({ caller }) func updateTest(testId : Nat, title : Text, categoryId : Nat, questionIds : [Nat], timeLimitMinutes : Nat) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     switch (testStore.get(testId)) {
       case (null) { Runtime.trap("Test not found") };
       case (?old) { testStore.add(testId, { id = testId; title; categoryId; questionIds; timeLimitMinutes; createdBy = old.createdBy }) };
@@ -223,12 +243,17 @@ actor {
   };
 
   public shared ({ caller }) func deleteTest(testId : Nat) : async () {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     testStore.remove(testId);
   };
 
   // Test Attempts
-  public shared ({ caller }) func submitTestAttempt(testId : Nat, answers : [Nat]) : async () {
+  public shared ({ caller }) func submitTestAttempt(testId : Nat, answers : [Nat], userName : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user)) or caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Only users can submit test attempts");
+    };
     let test = switch (testStore.get(testId)) {
       case (null) { Runtime.trap("Test not found") };
       case (?t) { t };
@@ -244,7 +269,7 @@ actor {
       if (answers[i] == questions[i].correctOptionIndex) { score += 1 };
     };
     let attempt : TestAttempt = {
-      userId = caller; testId; answers; score;
+      userId = caller; userName; testId; answers; score;
       totalQuestions = questions.size(); timestamp = Time.now();
     };
     let current = switch (testAttemptStore.get(caller)) {
@@ -277,6 +302,9 @@ actor {
   };
 
   public query ({ caller }) func getCallerTestAttempts() : async [TestAttempt] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user)) or caller.isAnonymous()) {
+      Runtime.trap("Unauthorized: Only users can view test attempts");
+    };
     switch (testAttemptStore.get(caller)) {
       case (null) { [] };
       case (?a) { a.toArray().sort(TestAttempt.compareByTimestamp) };
@@ -284,6 +312,9 @@ actor {
   };
 
   public query ({ caller }) func getUserTestAttempts(user : Principal) : async [TestAttempt] {
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own test attempts");
+    };
     switch (testAttemptStore.get(user)) {
       case (null) { [] };
       case (?a) { a.toArray().sort(TestAttempt.compareByTimestamp) };
@@ -291,7 +322,9 @@ actor {
   };
 
   public query ({ caller }) func getAllTestAttempts() : async [TestAttempt] {
-    if (not isAdminCaller(caller)) { Runtime.trap("Unauthorized") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
     var all = List.empty<TestAttempt>();
     for ((_, attempts) in testAttemptStore.entries()) {
       all.addAll(attempts.values());
@@ -308,9 +341,35 @@ actor {
     if (sorted.size() > 10) { Array.tabulate(10, func(i) { sorted[i] }) } else { sorted };
   };
 
-  // Seed sample data -- any logged-in user can trigger (frontend uses localStorage guard)
+  public shared ({ caller }) func deleteUserScoreRecord(userId : Principal, timestamp : Time.Time) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    switch (testAttemptStore.get(userId)) {
+      case (null) {};
+      case (?attempts) {
+        let filtered = List.empty<TestAttempt>();
+        for (a in attempts.values()) {
+          if (a.timestamp != timestamp) { filtered.add(a) };
+        };
+        testAttemptStore.add(userId, filtered);
+      };
+    };
+  };
+
+  public shared ({ caller }) func resetAllScores() : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
+    for ((userId, _) in testAttemptStore.entries()) {
+      testAttemptStore.remove(userId);
+    };
+  };
+
   public shared ({ caller }) func seedData() : async () {
-    if (caller.isAnonymous()) { Runtime.trap("Must be logged in") };
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can perform this action");
+    };
 
     let catMath = nextCategoryId;
     categoryStore.add(catMath, { id = catMath; name = "Math"; description = "Mathematics questions" });

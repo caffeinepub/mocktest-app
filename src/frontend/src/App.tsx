@@ -113,7 +113,11 @@ function AppInner() {
       try {
         const [result] = await Promise.all([
           getResult.mutateAsync({ testId: activeTestId, answers }),
-          submitAttempt.mutateAsync({ testId: activeTestId, answers }),
+          submitAttempt.mutateAsync({
+            testId: activeTestId,
+            answers,
+            userName,
+          }),
         ]);
         setPendingResult(result);
         setScreen("result");
@@ -121,7 +125,7 @@ function AppInner() {
         toast.error("Failed to submit test. Please try again.");
       }
     },
-    [activeTestId, getResult, submitAttempt],
+    [activeTestId, getResult, submitAttempt, userName],
   );
 
   const handleLogout = useCallback(async () => {

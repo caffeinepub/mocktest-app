@@ -39,6 +39,7 @@ export interface UserProfile {
     name: string;
 }
 export interface TestAttempt {
+    userName: string;
     userId: Principal;
     answers: Array<bigint>;
     score: bigint;
@@ -52,14 +53,15 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    register(): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimAdminWithSecret(secret: string): Promise<boolean>;
     createCategory(name: string, description: string): Promise<bigint>;
     createQuestion(categoryId: bigint, questionText: string, options: Array<string>, correctOptionIndex: bigint, difficulty: string): Promise<bigint>;
     createTest(title: string, categoryId: bigint, questionIds: Array<bigint>, timeLimitMinutes: bigint): Promise<bigint>;
     deleteCategory(categoryId: bigint): Promise<void>;
     deleteQuestion(questionId: bigint): Promise<void>;
     deleteTest(testId: bigint): Promise<void>;
+    deleteUserScoreRecord(userId: Principal, timestamp: Time): Promise<void>;
     getAllCategories(): Promise<Array<Category>>;
     getAllDataPublic(): Promise<{
         categories: Array<Category>;
@@ -82,11 +84,12 @@ export interface backendInterface {
     getTopScores(): Promise<Array<TestAttempt>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserTestAttempts(user: Principal): Promise<Array<TestAttempt>>;
-    claimAdminWithSecret(secret: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    register(): Promise<void>;
+    resetAllScores(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     seedData(): Promise<void>;
-    submitTestAttempt(testId: bigint, answers: Array<bigint>): Promise<void>;
+    submitTestAttempt(testId: bigint, answers: Array<bigint>, userName: string): Promise<void>;
     updateCategory(categoryId: bigint, name: string, description: string): Promise<void>;
     updateQuestion(questionId: bigint, categoryId: bigint, questionText: string, options: Array<string>, correctOptionIndex: bigint, difficulty: string): Promise<void>;
     updateTest(testId: bigint, title: string, categoryId: bigint, questionIds: Array<bigint>, timeLimitMinutes: bigint): Promise<void>;

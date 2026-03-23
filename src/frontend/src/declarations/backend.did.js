@@ -13,6 +13,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const Time = IDL.Int;
 export const Category = IDL.Record({
   'id' : IDL.Nat,
   'name' : IDL.Text,
@@ -34,8 +35,8 @@ export const Question = IDL.Record({
   'correctOptionIndex' : IDL.Nat,
   'options' : IDL.Vec(IDL.Text),
 });
-export const Time = IDL.Int;
 export const TestAttempt = IDL.Record({
+  'userName' : IDL.Text,
   'userId' : IDL.Principal,
   'answers' : IDL.Vec(IDL.Nat),
   'score' : IDL.Nat,
@@ -52,9 +53,9 @@ export const TestResult = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  'register' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'claimAdminWithSecret' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'createCategory' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
   'createQuestion' : IDL.Func(
       [IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), IDL.Nat, IDL.Text],
@@ -69,6 +70,7 @@ export const idlService = IDL.Service({
   'deleteCategory' : IDL.Func([IDL.Nat], [], []),
   'deleteQuestion' : IDL.Func([IDL.Nat], [], []),
   'deleteTest' : IDL.Func([IDL.Nat], [], []),
+  'deleteUserScoreRecord' : IDL.Func([IDL.Principal, Time], [], []),
   'getAllCategories' : IDL.Func([], [IDL.Vec(Category)], ['query']),
   'getAllDataPublic' : IDL.Func(
       [],
@@ -114,9 +116,11 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'register' : IDL.Func([], [], []),
+  'resetAllScores' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'seedData' : IDL.Func([], [], []),
-  'submitTestAttempt' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat)], [], []),
+  'submitTestAttempt' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat), IDL.Text], [], []),
   'updateCategory' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
   'updateQuestion' : IDL.Func(
       [IDL.Nat, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), IDL.Nat, IDL.Text],
@@ -138,6 +142,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const Time = IDL.Int;
   const Category = IDL.Record({
     'id' : IDL.Nat,
     'name' : IDL.Text,
@@ -159,8 +164,8 @@ export const idlFactory = ({ IDL }) => {
     'correctOptionIndex' : IDL.Nat,
     'options' : IDL.Vec(IDL.Text),
   });
-  const Time = IDL.Int;
   const TestAttempt = IDL.Record({
+    'userName' : IDL.Text,
     'userId' : IDL.Principal,
     'answers' : IDL.Vec(IDL.Nat),
     'score' : IDL.Nat,
@@ -177,9 +182,9 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-  'register' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'claimAdminWithSecret' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'createCategory' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], []),
     'createQuestion' : IDL.Func(
         [IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), IDL.Nat, IDL.Text],
@@ -194,6 +199,7 @@ export const idlFactory = ({ IDL }) => {
     'deleteCategory' : IDL.Func([IDL.Nat], [], []),
     'deleteQuestion' : IDL.Func([IDL.Nat], [], []),
     'deleteTest' : IDL.Func([IDL.Nat], [], []),
+    'deleteUserScoreRecord' : IDL.Func([IDL.Principal, Time], [], []),
     'getAllCategories' : IDL.Func([], [IDL.Vec(Category)], ['query']),
     'getAllDataPublic' : IDL.Func(
         [],
@@ -239,9 +245,15 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'register' : IDL.Func([], [], []),
+    'resetAllScores' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'seedData' : IDL.Func([], [], []),
-    'submitTestAttempt' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Nat)], [], []),
+    'submitTestAttempt' : IDL.Func(
+        [IDL.Nat, IDL.Vec(IDL.Nat), IDL.Text],
+        [],
+        [],
+      ),
     'updateCategory' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [], []),
     'updateQuestion' : IDL.Func(
         [IDL.Nat, IDL.Nat, IDL.Text, IDL.Vec(IDL.Text), IDL.Nat, IDL.Text],

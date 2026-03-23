@@ -32,6 +32,7 @@ export interface Test {
   'questionIds' : Array<bigint>,
 }
 export interface TestAttempt {
+  'userName' : string,
   'userId' : Principal,
   'answers' : Array<bigint>,
   'score' : bigint,
@@ -51,9 +52,9 @@ export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
 export interface _SERVICE {
-  'register' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'claimAdminWithSecret' : ActorMethod<[string], boolean>,
   'createCategory' : ActorMethod<[string, string], bigint>,
   'createQuestion' : ActorMethod<
     [bigint, string, Array<string>, bigint, string],
@@ -63,6 +64,7 @@ export interface _SERVICE {
   'deleteCategory' : ActorMethod<[bigint], undefined>,
   'deleteQuestion' : ActorMethod<[bigint], undefined>,
   'deleteTest' : ActorMethod<[bigint], undefined>,
+  'deleteUserScoreRecord' : ActorMethod<[Principal, Time], undefined>,
   'getAllCategories' : ActorMethod<[], Array<Category>>,
   'getAllDataPublic' : ActorMethod<
     [],
@@ -89,9 +91,11 @@ export interface _SERVICE {
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserTestAttempts' : ActorMethod<[Principal], Array<TestAttempt>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'register' : ActorMethod<[], undefined>,
+  'resetAllScores' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'seedData' : ActorMethod<[], undefined>,
-  'submitTestAttempt' : ActorMethod<[bigint, Array<bigint>], undefined>,
+  'submitTestAttempt' : ActorMethod<[bigint, Array<bigint>, string], undefined>,
   'updateCategory' : ActorMethod<[bigint, string, string], undefined>,
   'updateQuestion' : ActorMethod<
     [bigint, bigint, string, Array<string>, bigint, string],

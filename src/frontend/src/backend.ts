@@ -121,6 +121,7 @@ export interface UserProfile {
     name: string;
 }
 export interface TestAttempt {
+    userName: string;
     userId: Principal;
     answers: Array<bigint>;
     score: bigint;
@@ -135,14 +136,15 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    register(): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    claimAdminWithSecret(secret: string): Promise<boolean>;
     createCategory(name: string, description: string): Promise<bigint>;
     createQuestion(categoryId: bigint, questionText: string, options: Array<string>, correctOptionIndex: bigint, difficulty: string): Promise<bigint>;
     createTest(title: string, categoryId: bigint, questionIds: Array<bigint>, timeLimitMinutes: bigint): Promise<bigint>;
     deleteCategory(categoryId: bigint): Promise<void>;
     deleteQuestion(questionId: bigint): Promise<void>;
     deleteTest(testId: bigint): Promise<void>;
+    deleteUserScoreRecord(userId: Principal, timestamp: Time): Promise<void>;
     getAllCategories(): Promise<Array<Category>>;
     getAllDataPublic(): Promise<{
         categories: Array<Category>;
@@ -165,11 +167,12 @@ export interface backendInterface {
     getTopScores(): Promise<Array<TestAttempt>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserTestAttempts(user: Principal): Promise<Array<TestAttempt>>;
-    claimAdminWithSecret(secret: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    register(): Promise<void>;
+    resetAllScores(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     seedData(): Promise<void>;
-    submitTestAttempt(testId: bigint, answers: Array<bigint>): Promise<void>;
+    submitTestAttempt(testId: bigint, answers: Array<bigint>, userName: string): Promise<void>;
     updateCategory(categoryId: bigint, name: string, description: string): Promise<void>;
     updateQuestion(questionId: bigint, categoryId: bigint, questionText: string, options: Array<string>, correctOptionIndex: bigint, difficulty: string): Promise<void>;
     updateTest(testId: bigint, title: string, categoryId: bigint, questionIds: Array<bigint>, timeLimitMinutes: bigint): Promise<void>;
@@ -177,20 +180,6 @@ export interface backendInterface {
 import type { UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async register(): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.register();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.register();
-            return result;
-        }
-    }
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
         if (this.processError) {
             try {
@@ -216,6 +205,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n1(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async claimAdminWithSecret(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.claimAdminWithSecret(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.claimAdminWithSecret(arg0);
             return result;
         }
     }
@@ -300,6 +303,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteTest(arg0);
+            return result;
+        }
+    }
+    async deleteUserScoreRecord(arg0: Principal, arg1: Time): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteUserScoreRecord(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteUserScoreRecord(arg0, arg1);
             return result;
         }
     }
@@ -546,20 +563,6 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async claimAdminWithSecret(arg0: string): Promise<boolean> {
-        if (this.processError) {
-            try {
-                const result = await (this.actor as any).claimAdminWithSecret(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await (this.actor as any).claimAdminWithSecret(arg0);
-            return result;
-        }
-    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -571,6 +574,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async register(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.register();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.register();
+            return result;
+        }
+    }
+    async resetAllScores(): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetAllScores();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetAllScores();
             return result;
         }
     }
@@ -602,17 +633,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async submitTestAttempt(arg0: bigint, arg1: Array<bigint>): Promise<void> {
+    async submitTestAttempt(arg0: bigint, arg1: Array<bigint>, arg2: string): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.submitTestAttempt(arg0, arg1);
+                const result = await this.actor.submitTestAttempt(arg0, arg1, arg2);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.submitTestAttempt(arg0, arg1);
+            const result = await this.actor.submitTestAttempt(arg0, arg1, arg2);
             return result;
         }
     }

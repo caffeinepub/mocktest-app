@@ -52,10 +52,12 @@ import {
   useDeleteCategory,
   useDeleteQuestion,
   useDeleteTest,
+  useDeleteUserScoreRecord,
   useGetAllCategories,
   useGetAllQuestions,
   useGetAllTestAttempts,
   useGetAllTests,
+  useResetAllScores,
   useUpdateCategory,
   useUpdateQuestion,
   useUpdateTest,
@@ -438,6 +440,8 @@ export default function AdminPanel({
   const createTest = useCreateTest();
   const updateTest = useUpdateTest();
   const deleteTest = useDeleteTest();
+  const deleteUserScoreRecord = useDeleteUserScoreRecord();
+  const resetAllScores = useResetAllScores();
 
   // Dialog state
   const [catDialog, setCatDialog] = useState<{
@@ -523,6 +527,9 @@ export default function AdminPanel({
           </TabsTrigger>
           <TabsTrigger value="results" data-ocid="admin.results.tab">
             Results
+          </TabsTrigger>
+          <TabsTrigger value="userscores" data-ocid="admin.userscores.tab">
+            User Scores
           </TabsTrigger>
         </TabsList>
 
@@ -845,7 +852,9 @@ export default function AdminPanel({
                         {getTestTitle(attempt.testId)}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                        User: {attempt.userId.toString().slice(0, 20)}…
+                        {attempt.userName
+                          ? attempt.userName
+                          : `${attempt.userId.toString().slice(0, 16)}…`}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
@@ -866,6 +875,202 @@ export default function AdminPanel({
                   </div>
                 );
               })}
+            </div>
+          )}
+        </TabsContent>
+        {/* ---- User Scores Tab ---- */}
+        <TabsContent value="userscores" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-foreground">
+              User Scores ({allAttempts.length})
+            </h2>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  data-ocid="admin.userscores.delete_button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={
+                    resetAllScores.isPending || allAttempts.length === 0
+                  }
+                >
+                  {resetAllScores.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-1" />
+                  )}
+                  Reset All Scores
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent data-ocid="admin.userscores.reset.dialog">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset All Scores?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all {allAttempts.length} user
+                    score records. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-ocid="admin.userscores.reset.cancel_button">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    data-ocid="admin.userscores.reset.confirm_button"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() =>
+                      resetAllScores.mutate(undefined, {
+                        onSuccess: () =>
+                          toast.success("All scores have been reset"),
+                        onError: () => toast.error("Failed to reset scores"),
+                      })
+                    }
+                  >
+                    Reset All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          {attemptsLoading ? (
+            <div
+              className="space-y-2"
+              data-ocid="admin.userscores.loading_state"
+            >
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 rounded-xl" />
+              ))}
+            </div>
+          ) : allAttempts.length === 0 ? (
+            <p
+              className="text-sm text-muted-foreground py-6 text-center"
+              data-ocid="admin.userscores.empty_state"
+            >
+              No user scores recorded yet.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-muted-foreground">
+                    <th className="text-left px-4 py-3 font-medium">#</th>
+                    <th className="text-left px-4 py-3 font-medium">Name</th>
+                    <th className="text-left px-4 py-3 font-medium">Test</th>
+                    <th className="text-right px-4 py-3 font-medium">Score</th>
+                    <th className="text-right px-4 py-3 font-medium">Date</th>
+                    <th className="text-right px-4 py-3 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allAttempts.map((attempt, idx) => {
+                    const pct =
+                      Number(attempt.totalQuestions) > 0
+                        ? Math.round(
+                            (Number(attempt.score) /
+                              Number(attempt.totalQuestions)) *
+                              100,
+                          )
+                        : 0;
+                    const date = new Date(
+                      Number(attempt.timestamp) / 1_000_000,
+                    );
+                    return (
+                      <tr
+                        key={`${String(attempt.timestamp)}-${idx}`}
+                        data-ocid={`admin.userscores.item.${idx + 1}`}
+                        className="border-t border-border hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {attempt.userName || (
+                            <span className="text-muted-foreground italic">
+                              Unknown
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {getTestTitle(attempt.testId)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Badge
+                            variant="outline"
+                            className={
+                              pct >= 60
+                                ? "border-success/40 text-success"
+                                : "border-destructive/40 text-destructive"
+                            }
+                          >
+                            {String(attempt.score)}/
+                            {String(attempt.totalQuestions)} ({pct}%)
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right text-muted-foreground text-xs">
+                          {date.toLocaleDateString()}{" "}
+                          {date.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                data-ocid={`admin.userscores.delete_button.${idx + 1}`}
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={deleteUserScoreRecord.isPending}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent data-ocid="admin.userscores.delete.dialog">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Delete Score Record?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the score record
+                                  for &ldquo;{attempt.userName || "Unknown"}
+                                  &rdquo;. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel data-ocid="admin.userscores.delete.cancel_button">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  data-ocid="admin.userscores.delete.confirm_button"
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() =>
+                                    deleteUserScoreRecord.mutate(
+                                      {
+                                        userId: attempt.userId,
+                                        timestamp: attempt.timestamp,
+                                      },
+                                      {
+                                        onSuccess: () =>
+                                          toast.success("Score record deleted"),
+                                        onError: () =>
+                                          toast.error(
+                                            "Failed to delete record",
+                                          ),
+                                      },
+                                    )
+                                  }
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </TabsContent>
